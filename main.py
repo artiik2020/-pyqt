@@ -1,58 +1,43 @@
 import sys
-import numpy as np
-from PyQt6.QtWidgets import QApplication, QMainWindow, QVBoxLayout
-from PyQt6 import uic
-import pyqtgraph as pg
+from PyQt6 import QtCore, QtMultimedia, uic
+from PyQt6.QtWidgets import QApplication, QMainWindow
 
 
-class PlotWindow(QMainWindow):
+class PianoWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         uic.loadUi("plotter.ui", self)
 
-        self.plot_widget = pg.PlotWidget()
-        self.plot_widget.setLabel('left', 'f(x)')
-        self.plot_widget.setLabel('bottom', 'x')
-        self.plot_widget.showGrid(x=True, y=True)
-        layout = QVBoxLayout(self.graphContainer)
-        layout.addWidget(self.plot_widget)
+        self.player = QtMultimedia.QMediaPlayer()
+        self.audio_output = QtMultimedia.QAudioOutput()
+        self.player.setAudioOutput(self.audio_output)
+        self.audio_output.setVolume(50)
 
-        self.plotButton.clicked.connect(self.plot)
+        self.btn1.clicked.connect(lambda: self.play_note(1))
+        self.btn2.clicked.connect(lambda: self.play_note(2))
+        self.btn3.clicked.connect(lambda: self.play_note(3))
+        self.btn4.clicked.connect(lambda: self.play_note(4))
+        self.btn5.clicked.connect(lambda: self.play_note(5))
+        self.btn6.clicked.connect(lambda: self.play_note(6))
+        self.btn7.clicked.connect(lambda: self.play_note(7))
 
-    def plot(self):
-        self.errorLabel.setText("")
+    def play_note(self, num):
+        self.player.stop()
+        self.player.setSource(QtCore.QUrl.fromLocalFile(f"misuc/{num}.mp3"))
+        self.player.play()
 
-        expr = self.functionEdit.text().strip()
-        if not expr:
-            self.errorLabel.setText("введите функцию")
-            return
-
-        x_min = self.xMinSpin.value()
-        x_max = self.xMaxSpin.value()
-        if x_min >= x_max:
-            self.errorLabel.setText("нижняя граница должна быть меньше верхней")
-            return
-
-        x = np.linspace(x_min, x_max, 1000)
-        try:
-            y = eval(expr)
-            if not isinstance(y, np.ndarray):
-                y = np.full_like(x, float(y))
-        except Exception as e:
-            self.errorLabel.setText(f"Ошибка: {e}")
-            return
-
-        mask = np.isfinite(y)
-        if not mask.any():
-            self.errorLabel.setText("Нет конечных значений в данном диапазоне")
-            return
-
-        self.plot_widget.clear()
-        self.plot_widget.plot(x[mask], y[mask], pen="r")
+    def keyPressEvent(self, event):
+        key = event.text().lower()
+        mapping = {
+            'z': 1, 'x': 2, 'c': 3, 'v': 4,
+            'b': 5, 'n': 6, 'm': 7
+        }
+        if key in mapping:
+            self.play_note(mapping[key])
 
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
-    window = PlotWindow()
+    window = PianoWindow()
     window.show()
     sys.exit(app.exec())
